@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+	<meta charset="UTF-8">
+	<!-- TODO: tighten CSP if possible; it seems WASM requires 'unsafe-eval' in Chrome... https://issues.chromium.org/issues/41457889 -->
+	<!-- I worked hard to avoid 'unsafe-eval', I invented a whole tool for it (see eval-is-evil.html), so this is a bit of a bummer. -->
+	<!-- Looks like in Electron there's 'wasm-eval' behind flag enableBlinkFeatures: 'WebAssemblyCSP'... -->
+	<meta http-equiv="Content-Security-Policy" content="default-src 'self' 'unsafe-inline' 'unsafe-eval' blob:">
+	<title>yz的游戏鼠标</title>
+	<script src="../node_modules/tracky-mouse/lib/stats.js"></script>
+	<script src="../node_modules/tracky-mouse/lib/no-eval.js"></script>
+	<script src="../node_modules/tracky-mouse/lib/clmtrackr.js"></script>
+	<script src="../node_modules/tracky-mouse/lib/face_mesh/face_mesh.js"></script>
+	<script src="../node_modules/tracky-mouse/lib/face-landmarks-detection.min.js"></script>
+	<script src="../node_modules/tracky-mouse/lib/OneEuroFilter.js"></script>
+	<!-- <script src="../node_modules/tracky-mouse/lib/jsfeat-min.js"></script> exported from patched clmtrackr.js -->
+	<style>
+		html,
+		body {
+			margin: 0;
+			padding: 0;
+			width: 100%;
+			height: 100%;
+			overflow: hidden;
+		}
+
+		body {
+			display: flex;
+			flex-direction: column;
+			/* inherit background color from BrowserWindow backgroundColor option */
+			background-color: transparent;
+			color: black;
+		}
+
+		.app-titlebar {
+			-webkit-app-region: drag;
+			height: env(titlebar-area-height, 0px);
+			overflow: hidden;
+			background-color: rgb(196, 173, 235);
+			flex-shrink: 0;
+			display: flex;
+			flex-direction: row;
+			align-items: center;
+		}
+
+		.app-titlebar-text {
+			font-size: 14px;
+			font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+		}
+
+		.tracky-mouse-ui {
+			flex: 1;
+			/* `overflow: hidden` is actually needed to SHOW a scrollbar, in this case. */
+			overflow: hidden;
+			/* Don't need min height when height of the container is 100%,
+			and don't want it because it can make the camera view get pushed
+			off-screen, making the media query's breakpoint highly dependent
+			on the UI. Without a min height, it's flexible, it's just a matter
+			of how small the camera view gets. If the settings take up a lot of
+			height, it might shrink to nothing, but it'll never get cut off. */
+			--tracky-mouse-camera-view-min-height: 0;
+		}
+
+		@media screen and (max-height: 500px) {
+
+			/* TODO: provide modal access to settings when window is small,
+			i.e. a button that shows the settings over/replacing the camera feed.
+			right now, this hides the settings and there's no indication that they exist */
+			.tracky-mouse-controls {
+				display: none;
+			}
+
+			.tracky-mouse-ui.tracky-mouse-ui {
+				padding: 0;
+				--tracky-mouse-camera-view-min-height: 0;
+			}
+		}
+	</style>
+	<link rel="stylesheet" type="text/css" href="custom-menu-bar.css">
+	<link rel="stylesheet" type="text/css" href="../node_modules/tracky-mouse/tracky-mouse.css">
+	<link rel="icon" type="image/png" sizes="16x16" href="images/tracky-mouse-logo-16.png">
+	<link rel="icon" type="image/png" sizes="512x512" href="images/tracky-mouse-logo-512.png">
+</head>
+
+<body>
+	<div class="app-titlebar">
+		<!-- Note: scale() is doing the work of margin here in addition to sizing -->
+		<img src="../images/tracky-mouse-logo.svg" alt="yz的游戏鼠标 Logo" style="transform: scale(0.7);">
+		<!-- TODO: localization -->
+		<span class="app-titlebar-text">yz的游戏鼠标</span>
+	</div>
+	<div id="custom-menu-bar"></div>
+	<script src="../node_modules/os-gui/MenuBar.js"></script>
+	<script src="custom-menu-bar.js"></script>
+	<script type="module">
+		(async () => {
+			initCustomMenuBar();
+
+			// Load options before initializing UI and put in localStorage
+			// because currently the translation loading uses localStorage only
+			let opts;
+			try {
+				opts = await window.electronAPI.getOptions();
+			} catch (error) {
+				console.error("Error getting options from main process:", error);
+			}
+			try {
+				localStorage.setItem("tracky-mouse-settings", JSON.stringify(opts));
+			} catch (error) {
+				console.error("Error saving options to localStorage:", error);
+			}
+			// -------
+			const { TrackyMouse } = await import("../node_modules/tracky-mouse/src/tracky-mouse.js");
+			TrackyMouse.init();
+		})();
+	</script>
+</body>
+
+</html>

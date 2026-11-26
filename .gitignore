@@ -1,0 +1,8 @@
+# Backup copies of the original (unpatched) Tracky Mouse files,
+# created locally by install.ps1 - never commit them.
+.lmb-clutch-backup/
+
+# OS junk
+Thumbs.db
+desktop.ini
+.DS_Store
